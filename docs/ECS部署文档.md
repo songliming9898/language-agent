@@ -155,6 +155,9 @@ npm run build
 ```bash
 cp /opt/language/language-agent/deploy/nginx.conf /etc/nginx/conf.d/kids-english.conf
 
+# 如果 nginx.conf 主配置中有旧的 8000 端口指向，需要改为 8003
+sed -i 's|http://127.0.0.1:8000/api/|http://127.0.0.1:8003/api/|' /etc/nginx/nginx.conf
+
 # 如果有域名，修改 server_name
 vi /etc/nginx/conf.d/kids-english.conf
 
