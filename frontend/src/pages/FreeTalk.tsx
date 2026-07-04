@@ -78,23 +78,34 @@ export default function FreeTalk() {
     if (isRecording) {
       setLoading(true);
       const blob = await stopRecording();
-      if (blob && sessionId) {
-        setSending(true);
-        try {
-          const res = await sendVoiceMessage(blob, sessionId);
-          setMessages((prev) => [
-            ...prev,
-            { id: Date.now(), role: "user", text: res.user_text, time: new Date().toISOString() },
-            { id: Date.now() + 1, role: "assistant", text: res.reply, time: new Date().toISOString() },
-          ]);
-          if (res.audio_base64) {
-            playBase64(res.audio_base64);
-          }
-        } catch (e) {
-          console.error(e);
-        } finally {
-          setSending(false);
+      console.log("[FreeTalk] stopRecording returned blob:", blob?.size, "bytes, type:", blob?.type);
+      if (!blob) {
+        console.warn("[FreeTalk] blob is null, recording may have failed");
+        setLoading(false);
+        return;
+      }
+      if (!sessionId) {
+        console.warn("[FreeTalk] no sessionId");
+        setLoading(false);
+        return;
+      }
+      setSending(true);
+      try {
+        console.log("[FreeTalk] sending voice message, blob size:", blob.size);
+        const res = await sendVoiceMessage(blob, sessionId);
+        console.log("[FreeTalk] got reply:", res.user_text, "->", res.reply?.substring(0, 50));
+        setMessages((prev) => [
+          ...prev,
+          { id: Date.now(), role: "user", text: res.user_text, time: new Date().toISOString() },
+          { id: Date.now() + 1, role: "assistant", text: res.reply, time: new Date().toISOString() },
+        ]);
+        if (res.audio_base64) {
+          playBase64(res.audio_base64);
         }
+      } catch (e) {
+        console.error("[FreeTalk] sendVoiceMessage error:", e);
+      } finally {
+        setSending(false);
       }
       setLoading(false);
     } else {
