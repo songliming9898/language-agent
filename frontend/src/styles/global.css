@@ -1,0 +1,360 @@
+/* 全局样式 — 儿童英语学习 App */
+
+:root {
+  --primary: #4caf50;
+  --primary-light: #81c784;
+  --primary-dark: #388e3c;
+  --accent: #ff9800;
+  --bg: #f5f5f5;
+  --card-bg: #ffffff;
+  --text: #333333;
+  --text-light: #666666;
+  --danger: #f44336;
+  --star: #ffc107;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+#root {
+  min-height: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--bg);
+}
+
+/* 页面容器 */
+.page {
+  padding: 16px;
+  min-height: 100vh;
+  padding-bottom: 24px;
+}
+
+/* 顶部标题栏 */
+.page-header {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-radius: 0 0 16px 16px;
+}
+
+.page-header .back-btn {
+  margin-right: 12px;
+  font-size: 20px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  color: #fff;
+  padding: 4px 8px;
+}
+
+/* 卡片 */
+.card {
+  background: var(--card-bg);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+
+/* 按钮 */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 24px;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+}
+
+.btn-primary:active {
+  background: var(--primary-dark);
+  transform: scale(0.97);
+}
+
+.btn-accent {
+  background: var(--accent);
+  color: #fff;
+}
+
+.btn-accent:active {
+  opacity: 0.8;
+  transform: scale(0.97);
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.btn-lg {
+  padding: 16px 32px;
+  font-size: 18px;
+}
+
+/* 录音按钮 */
+.record-btn {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 4px solid var(--danger);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin: 0 auto;
+}
+
+.record-btn.recording {
+  background: var(--danger);
+  animation: pulse 1.5s infinite;
+  border-color: var(--danger);
+}
+
+.record-btn.recording .record-icon {
+  background: #fff;
+}
+
+.record-icon {
+  width: 24px;
+  height: 24px;
+  background: var(--danger);
+  border-radius: 50%;
+  transition: all 0.3s;
+}
+
+.record-btn.recording .record-icon {
+  border-radius: 4px;
+  width: 18px;
+  height: 18px;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.4); }
+  70% { box-shadow: 0 0 0 20px rgba(244, 67, 54, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0); }
+}
+
+/* 评分展示 */
+.score-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 12px;
+}
+
+.score-item {
+  text-align: center;
+}
+
+.score-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.score-label {
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+/* 句子展示 */
+.sentence-display {
+  text-align: center;
+  padding: 24px 16px;
+}
+
+.sentence-en {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  margin-bottom: 8px;
+  line-height: 1.6;
+}
+
+.sentence-zh {
+  font-size: 16px;
+  color: var(--text-light);
+}
+
+/* 对话气泡 */
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 0;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.chat-bubble {
+  max-width: 80%;
+  padding: 10px 14px;
+  border-radius: 16px;
+  font-size: 15px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.chat-bubble.user {
+  align-self: flex-end;
+  background: var(--primary-light);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.chat-bubble.assistant {
+  align-self: flex-start;
+  background: #fff;
+  color: var(--text);
+  border-bottom-left-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.chat-bubble .bubble-time {
+  font-size: 10px;
+  opacity: 0.6;
+  margin-top: 4px;
+}
+
+/* 底部输入栏 */
+.chat-input-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #fff;
+  border-top: 1px solid #eee;
+  position: sticky;
+  bottom: 0;
+}
+
+.chat-input {
+  flex: 1;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  padding: 10px 16px;
+  font-size: 15px;
+  outline: none;
+}
+
+.chat-input:focus {
+  border-color: var(--primary);
+}
+
+/* 进度条 */
+.progress-bar {
+  height: 8px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 8px 0;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-light), var(--primary));
+  border-radius: 4px;
+  transition: width 0.3s;
+}
+
+/* 首页大按钮 */
+.home-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.home-action-card {
+  background: var(--card-bg);
+  border-radius: 20px;
+  padding: 24px;
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.home-action-card:active {
+  transform: scale(0.97);
+}
+
+.home-action-card .action-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.home-action-card .action-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.home-action-card .action-desc {
+  font-size: 14px;
+  color: var(--text-light);
+}
+
+/* 加载 */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  color: var(--text-light);
+}
+
+/* 反馈文字 */
+.feedback-text {
+  text-align: center;
+  font-size: 16px;
+  color: var(--accent);
+  padding: 12px;
+  font-weight: 600;
+}
+
+/* 空状态 */
+.empty-state {
+  text-align: center;
+  padding: 48px 16px;
+  color: var(--text-light);
+}
+
+.empty-state .empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
