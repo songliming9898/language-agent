@@ -113,11 +113,16 @@ async def free_chat(
 
     # 处理输入
     user_text = text
-    if audio:
+    print(f"[DEBUG /chat] text={text!r}, audio={audio}, audio.filename={audio.filename if audio else None}, audio.size={audio.size if audio else None}")
+    if audio and audio.filename and audio.size and audio.size > 0:
         audio_bytes = await audio.read()
-        user_text = await speech_to_text(audio_bytes, audio.filename or "audio.webm")
+        print(f"[DEBUG /chat] read {len(audio_bytes)} bytes from audio")
+        if audio_bytes:
+            user_text = await speech_to_text(audio_bytes, audio.filename or "audio.webm")
+            print(f"[DEBUG /chat] ASR result: {user_text!r}")
 
     if not user_text:
+        print("[DEBUG /chat] No text or audio, returning error")
         return {"code": 1, "message": "No text or audio provided"}
 
     # 创建或使用已有 session
