@@ -12,6 +12,15 @@ export function useRecorder(): UseRecorderReturn {
   const [error, setError] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  const cleanup = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+    mediaRecorderRef.current = null;
+  }, []);
 
   const startRecording = useCallback(async () => {
     setError(null);
@@ -19,11 +28,14 @@ export function useRecorder(): UseRecorderReturn {
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: MediaRecorder.isTypeSupported("audio/webm")
-          ? "audio/webm"
-          : "audio/mp4",
-      });
+      streamRef.current = stream;
+
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm")
+        ? "audio/webm"
+        : "audio/mp4";
+
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      mediaRecorderRef.current = mediaRecorder;
 
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) {
@@ -31,18 +43,20 @@ export function useRecorder(): UseRecorderReturn {
         }
       };
 
-      mediaRecorder.onstop = () => {
-        stream.getTracks().forEach((t) => t.stop());
-      };
-
-      mediaRecorderRef.current = mediaRecorder;
-      mediaRecorder.start();
+      mediaRecorder.start(100); // 每100ms收集一次数据，确保 stop 时能收到最后一片
       setIsRecording(true);
     } catch (err: any) {
-      setError("无法访问麦克风，请检查权限设置");
       console.error("Recorder error:", err);
+      if (err.name === "NotAllowedError") {
+        setError("麦克风权限被拒绝，请允许浏览器访问麦克风（需要 HTTPS）");
+      } else if (err.name === "NotFoundError") {
+        setError("未检测到麦克风设备");
+      } else {
+        setError("无法访问麦克风：" + err.message);
+      }
+      cleanup();
     }
-  }, []);
+  }, [cleanup]);
 
   const stopRecording = useCallback((): Promise<Blob | null> => {
     return new Promise((resolve) => {
@@ -54,14 +68,26 @@ export function useRecorder(): UseRecorderReturn {
       }
 
       recorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: recorder.mimeType });
+        cleanup();
         setIsRecording(false);
-        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
         resolve(blob);
       };
 
-      recorder.stop();
+      // 确保在停止前请求最后一个数据块
+      if (recorder.state === "recording") {
+        recorder.requestData();
+        // 小延迟确保 ondataavailable 触发
+        setTimeout(() => {
+          if (recorder.state === "recording") {
+            recorder.stop();
+          }
+        }, 150);
+      } else {
+        resolve(null);
+      }
     });
-  }, []);
+  }, [cleanup]);
 
   return { isRecording, startRecording, stopRecording, error };
 }

@@ -11,7 +11,7 @@ export default function FreeTalk() {
   const [inputText, setInputText] = useState("");
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
-  const { isRecording, startRecording, stopRecording } = useRecorder();
+  const { isRecording, startRecording, stopRecording, error: recorderError } = useRecorder();
   const { playBase64 } = useAudioPlayer();
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -133,11 +133,19 @@ export default function FreeTalk() {
         <div ref={chatEndRef} />
       </div>
 
+      {/* 错误提示 */}
+      {recorderError && (
+        <div style={{ padding: "8px 16px", background: "#fff3cd", color: "#856404", fontSize: 13, textAlign: "center" }}>
+          ⚠️ {recorderError}
+        </div>
+      )}
+
       {/* 输入区 */}
       <div className="chat-input-bar">
         {/* 语音按钮 */}
         <div
           onClick={handleVoice}
+          title={isRecording ? "点击停止录音" : "点击开始语音输入"}
           style={{
             width: 44,
             height: 44,
