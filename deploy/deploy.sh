@@ -1,66 +1,72 @@
 #!/bin/bash
 # ============================================
 # 阿里云 ECS 部署脚本
+# 项目路径: /opt/language/language-agent
+# 虚拟环境: /opt/language/langvenv
 # ============================================
 set -e
 
-APP_DIR="/opt/kids-english"
-PYTHON_BIN="python3"
-VENV_DIR="$APP_DIR/venv"
+APP_DIR="/opt/language/language-agent"
+VENV_DIR="/opt/language/langvenv"
 
 echo "🚀 开始部署 Kids English Agent..."
+echo "   项目目录: $APP_DIR"
+echo "   虚拟环境: $VENV_DIR"
 
-# 1. 创建目录
-mkdir -p $APP_DIR
-
-# 2. 复制后端
-echo "📦 部署后端..."
-cp -r backend $APP_DIR/
-cd $APP_DIR/backend
-
-# 3. 创建虚拟环境
+# 1. 创建虚拟环境（如已存在则跳过）
 if [ ! -d "$VENV_DIR" ]; then
-    $PYTHON_BIN -m venv $VENV_DIR
+    echo "📦 创建虚拟环境..."
+    python3 -m venv $VENV_DIR
 fi
 source $VENV_DIR/bin/activate
 
-# 4. 安装依赖
+# 2. 安装/更新 Python 依赖
+echo "📦 安装 Python 依赖..."
+cd $APP_DIR/backend
 pip install -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
 pip install edge-tts -i https://mirrors.aliyun.com/pypi/simple/
 
-# 5. 配置环境变量（从 .env 文件加载）
+# 3. 初始化数据库
+echo "🗄️ 初始化数据库..."
 if [ -f "$APP_DIR/.env" ]; then
     export $(cat $APP_DIR/.env | grep -v '^#' | xargs)
 fi
+mysql -u${DB_USER:-root} -p${DB_PASSWORD} < $APP_DIR/backend/db/init.sql 2>/dev/null || echo "数据库可能已存在，跳过创建"
 
-# 6. 初始化数据库
-echo "🗄️ 初始化数据库..."
-mysql -u${DB_USER:-root} -p${DB_PASSWORD} < db/init.sql 2>/dev/null || echo "数据库可能已存在，跳过创建"
+# 4. 构建前端
+echo "🎨 构建前端..."
+cd $APP_DIR/frontend
+npm install --registry=https://registry.npmmirror.com
+npm run build
 
-# 7. 启动后端 (使用 systemd 或 supervisor)
-echo "▶️ 启动后端服务..."
+# 5. 配置 Systemd 服务
+echo "⚙️ 配置 Systemd 服务..."
+cat > /etc/systemd/system/kids-english.service << 'SERVICEEOF'
+[Unit]
+Description=Kids English Speaking Agent
+After=network.target mysql.service
 
-# 复制 systemd 服务文件
-cp ../deploy/kids-english.service /etc/systemd/system/
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/language/language-agent/backend
+EnvironmentFile=/opt/language/language-agent/.env
+ExecStart=/opt/language/langvenv/bin/python -m uvicorn main:app --host 0.0.0.0 --port 8003
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+SERVICEEOF
+
 systemctl daemon-reload
 systemctl enable kids-english
 systemctl restart kids-english
 
-# 8. 部署前端
-echo "🎨 部署前端..."
-cd $APP_DIR
-cp -r frontend $APP_DIR/
-cd $APP_DIR/frontend
-
-# 安装 Node 依赖并构建
-npm install --registry=https://registry.npmmirror.com
-npm run build
-
-# 9. 配置 Nginx
+# 6. 配置 Nginx
 echo "🔧 配置 Nginx..."
-cp ../deploy/nginx.conf /etc/nginx/sites-available/kids-english 2>/dev/null || \
-cp ../deploy/nginx.conf /etc/nginx/conf.d/kids-english.conf
+cp $APP_DIR/deploy/nginx.conf /etc/nginx/conf.d/kids-english.conf
 nginx -t && systemctl reload nginx
 
 echo "✅ 部署完成！"
-echo "访问地址: http://$(curl -s ifconfig.me)"
+echo "   访问地址: http://$(curl -s ifconfig.me)"

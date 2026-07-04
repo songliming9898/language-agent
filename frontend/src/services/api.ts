@@ -20,6 +20,7 @@ export interface Course {
   id: number;
   grade: string;
   semester: string;
+  version: string;
 }
 
 export interface Unit {
