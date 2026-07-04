@@ -92,7 +92,7 @@ def get_memory_summary(db: Session = Depends(get_db)):
         t = r.memory_type
         if t not in summary:
             summary[t] = []
-        summary[t].append({"key": r.key, "value": r.value, "confidence": r.confidence})
+        summary[t].append({"key": r.memory_key, "value": r.memory_value, "confidence": r.confidence})
 
     context = get_memory_context(db, uid)
 

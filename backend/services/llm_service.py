@@ -42,7 +42,7 @@ def build_memory_context(memory_records: list) -> str:
     for record in memory_records:
         key = record.memory_type
         if key in parts:
-            parts[key].append(record.key)
+            parts[key].append(record.memory_key)
 
     lines = []
     if parts["vocab_mastered"]:

@@ -21,8 +21,8 @@ class MemoryRecord(Base):
         nullable=False,
         comment="记忆类型",
     )
-    key = Column("`key`", String(200), nullable=False, comment="记忆关键词")
-    value = Column("`value`", Text, comment="记忆内容")
+    memory_key = Column(String(200), name="`key`", nullable=False, comment="记忆关键词")
+    memory_value = Column(Text, name="`value`", comment="记忆内容")
     confidence = Column(Float, default=0.5, comment="置信度")
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

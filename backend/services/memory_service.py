@@ -33,13 +33,13 @@ def upsert_memory(
         .filter(
             MemoryRecord.user_id == uid,
             MemoryRecord.memory_type == memory_type,
-            MemoryRecord.key == key,
+            MemoryRecord.memory_key == key,
         )
         .first()
     )
 
     if record:
-        record.value = value or record.value
+        record.memory_value = value or record.memory_value
         record.confidence = max(record.confidence, confidence)
     else:
         record = MemoryRecord(
