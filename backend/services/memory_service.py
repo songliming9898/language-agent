@@ -45,8 +45,8 @@ def upsert_memory(
         record = MemoryRecord(
             user_id=uid,
             memory_type=memory_type,
-            key=key,
-            value=value,
+            memory_key=key,
+            memory_value=value,
             confidence=confidence,
         )
         db.add(record)
