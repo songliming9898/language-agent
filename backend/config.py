@@ -1,15 +1,14 @@
 """应用配置管理"""
-import os
 from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
     # 数据库
-    DB_HOST: str = os.getenv("DB_HOST", "127.0.0.1")
-    DB_PORT: int = int(os.getenv("DB_PORT", "3306"))
-    DB_USER: str = os.getenv("DB_USER", "root")
-    DB_PASSWORD: str = os.getenv("DB_PASSWORD", "")
-    DB_NAME: str = os.getenv("DB_NAME", "kids_english")
+    DB_HOST: str = "127.0.0.1"
+    DB_PORT: int = 3306
+    DB_USER: str = "root"
+    DB_PASSWORD: str = ""
+    DB_NAME: str = "kids_english"
 
     @property
     def DATABASE_URL(self) -> str:
@@ -20,20 +19,22 @@ class Settings(BaseSettings):
         )
 
     # LLM
-    LLM_API_KEY: str = os.getenv("LLM_API_KEY", "")
-    LLM_BASE_URL: str = os.getenv("LLM_BASE_URL", "https://api.deepseek.com")
-    LLM_MODEL: str = os.getenv("LLM_MODEL", "deepseek-chat")
+    LLM_API_KEY: str = ""
+    LLM_BASE_URL: str = "https://api.deepseek.com"
+    LLM_MODEL: str = "deepseek-chat"
 
     # TTS (Edge-TTS 免费，无需配置)
-    TTS_PROVIDER: str = os.getenv("TTS_PROVIDER", "edge")  # edge / tencent
+    TTS_PROVIDER: str = "edge"
 
-    # ASR (预留，Demo用Whisper本地或mock)
-    ASR_PROVIDER: str = os.getenv("ASR_PROVIDER", "whisper")
+    # ASR
+    ASR_PROVIDER: str = "whisper"
 
     # 应用
     APP_HOST: str = "0.0.0.0"
     APP_PORT: int = 8003
     DEMO_USER_ID: int = 1  # Demo阶段固定用户ID
+
+    model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
 
 settings = Settings()
