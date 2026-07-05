@@ -1,4 +1,4 @@
-"""ASR 语音识别服务（Vosk 离线方案 + 全局预加载）"""
+"""ASR 语音识别服务（Sherpa-ONNX Paraformer 离线方案 + 全局预加载）"""
 import os
 import json
 import tempfile
@@ -7,24 +7,35 @@ import asyncio
 import concurrent.futures
 import threading
 
-# 全局单例模型（启动时加载一次，后续请求复用）
-_model = None
-_model_lock = threading.Lock()
+# 全局单例模型
+_recognizer = None
+_lock = threading.Lock()
 
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "vosk-model-small-en-us-0.15")
+# 模型路径（在 backend/models/ 下）
+_MODEL_DIR = os.path.join(os.path.dirname(__file__), "..", "models", "sherpa-onnx-paraformer-zh-small")
+_MODEL_FILE = os.path.join(_MODEL_DIR, "model.int8.onnx")
+_TOKENS_FILE = os.path.join(_MODEL_DIR, "tokens.txt")
 
 
-def _get_model():
-    """获取全局 Vosk 模型（懒加载 + 线程安全）"""
-    global _model
-    if _model is None:
-        with _model_lock:
-            if _model is None:
-                import vosk
-                print(f"[ASR] Loading Vosk model from {MODEL_PATH}...")
-                _model = vosk.Model(MODEL_PATH)
-                print("[ASR] Vosk model loaded (global singleton)")
-    return _model
+def _get_recognizer():
+    """获取全局 Sherpa-ONNX 识别器（懒加载 + 线程安全）"""
+    global _recognizer
+    if _recognizer is None:
+        with _lock:
+            if _recognizer is None:
+                import sherpa_onnx
+                print(f"[ASR] Loading Sherpa-ONNX model from {_MODEL_DIR}...")
+                config = sherpa_onnx.OfflineRecognizerConfig(
+                    model=sherpa_onnx.OfflineModelConfig(
+                        paraformer=sherpa_onnx.OfflineParaformerModelConfig(
+                            model=_MODEL_FILE,
+                        ),
+                        tokens=_TOKENS_FILE,
+                    ),
+                )
+                _recognizer = sherpa_onnx.OfflineRecognizer(config)
+                print("[ASR] Sherpa-ONNX model loaded (global singleton)")
+    return _recognizer
 
 
 def _convert_to_wav(input_path: str) -> str | None:
@@ -38,36 +49,25 @@ def _convert_to_wav(input_path: str) -> str | None:
         )
         return output_path
     except Exception as e:
-        print(f"[ASR] ffmpeg conversion error: {e}")
+        print(f"[ASR] ffmpeg error: {e}")
         return None
 
 
 def _recognize_sync(wav_path: str) -> str:
     """同步语音识别（在线程池中运行）"""
-    import vosk
-    import wave
+    import soundfile as sf
 
-    model = _get_model()
-    wf = wave.open(wav_path, "rb")
-    rec = vosk.KaldiRecognizer(model, wf.getframerate())
-    rec.SetWords(False)
-
-    result_text = ""
-    while True:
-        data = wf.readframes(4000)
-        if len(data) == 0:
-            break
-        if rec.AcceptWaveform(data):
-            res = json.loads(rec.Result())
-            result_text += res.get("text", "") + " "
-    res = json.loads(rec.FinalResult())
-    result_text += res.get("text", "")
-    wf.close()
-    return result_text.strip()
+    recognizer = _get_recognizer()
+    samples, sample_rate = sf.read(wav_path, dtype="float32")
+    stream = recognizer.create_stream()
+    stream.accept_waveform(sample_rate, samples)
+    recognizer.decode_stream(stream)
+    result = stream.result.text.strip()
+    return result
 
 
 async def speech_to_text(audio_bytes: bytes, filename: str = "audio.webm") -> str:
-    """语音转文字，使用 Vosk 离线识别（全局预加载模型）"""
+    """语音转文字，使用 Sherpa-ONNX Paraformer 离线识别"""
     suffix = os.path.splitext(filename)[1] or ".webm"
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         tmp.write(audio_bytes)
@@ -79,8 +79,8 @@ async def speech_to_text(audio_bytes: bytes, filename: str = "audio.webm") -> st
         if not wav_path:
             return ""
 
-        if not os.path.exists(MODEL_PATH):
-            print(f"[ASR] Vosk model not found at {MODEL_PATH}")
+        if not os.path.exists(_MODEL_FILE):
+            print(f"[ASR] Model not found at {_MODEL_FILE}")
             return ""
 
         loop = asyncio.get_running_loop()
