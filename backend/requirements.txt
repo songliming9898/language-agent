@@ -10,5 +10,5 @@ pydantic==2.10.3
 pydantic-settings==2.7.0
 aiofiles==24.1.0
 python-dotenv==1.0.1
-aiohttp==3.10.11
+pyttsx3==2.90
 vosk==0.3.45
