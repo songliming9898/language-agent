@@ -24,9 +24,12 @@ class Settings(BaseSettings):
     LLM_BASE_URL: str = "https://api.deepseek.com"
     LLM_MODEL: str = "deepseek-chat"
 
-    # TTS (Microsoft Edge TTS，免费)
-    TTS_PROVIDER: str = "edge"
-    TTS_VOICE: str = "en-US-JennyNeural"
+    # TTS (腾讯云语音合成)
+    TTS_PROVIDER: str = "tencent"
+    TENCENT_SECRET_ID: str = ""
+    TENCENT_SECRET_KEY: str = ""
+    TTS_VOICE_TYPE: int = 101001   # 音色ID: 101001=智瑜(女声,中文)
+    TTS_PRIMARY_LANGUAGE: int = 1  # 1=中文, 2=英文
 
     # ASR (Sherpa-ONNX Paraformer 离线方案)
     ASR_PROVIDER: str = "sherpa_onnx"
