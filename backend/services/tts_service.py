@@ -1,4 +1,4 @@
-"""TTS 语音合成服务（火山引擎豆包 TTS）"""
+"""TTS 语音合成服务（火山引擎豆包 TTS - API Key 方式）"""
 import json
 import asyncio
 import aiohttp
@@ -11,29 +11,27 @@ DOUBAO_API_URL = "https://openspeech.bytedance.com/api/v1/tts"
 async def text_to_speech(text: str, voice: str = None) -> bytes:
     """
     将文字转为语音，返回 MP3 字节流
-    使用火山引擎豆包 TTS REST API
+    使用火山引擎豆包 TTS API Key 方式接入
     """
-    app_id = settings.DOUBAO_APP_ID
-    access_token = settings.DOUBAO_ACCESS_TOKEN
+    api_key = settings.DOUBAO_API_KEY
     tts_voice = voice or settings.DOUBAO_VOICE
-    cluster = settings.DOUBAO_CLUSTER
 
-    if not app_id or not access_token:
-        print("[TTS] Doubao credentials not configured")
+    if not api_key:
+        print("[TTS] Doubao API Key not configured")
         return b""
 
     print(f"[TTS] Doubao synthesizing: {text[:60]}...")
 
     headers = {
-        "Authorization": f"Bearer;{access_token}",
+        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
 
     payload = {
         "app": {
-            "appid": app_id,
-            "token": access_token,
-            "cluster": cluster,
+            "appid": "kids_english",
+            "token": api_key,
+            "cluster": "volcano_tts",
         },
         "user": {
             "uid": "kids_english_user",
