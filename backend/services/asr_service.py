@@ -26,7 +26,7 @@ def _get_recognizer():
                 import sherpa_onnx
                 print(f"[ASR] Loading Sherpa-ONNX model from {_MODEL_DIR}...")
                 config = sherpa_onnx.OfflineRecognizerConfig(
-                    model=sherpa_onnx.OfflineModelConfig(
+                    model_config=sherpa_onnx.OfflineModelConfig(
                         paraformer=sherpa_onnx.OfflineParaformerModelConfig(
                             model=_MODEL_FILE,
                         ),
