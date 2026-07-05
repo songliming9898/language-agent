@@ -1,6 +1,5 @@
 """ASR 语音识别服务（Sherpa-ONNX Paraformer 离线方案 + 全局预加载）"""
 import os
-import json
 import tempfile
 import subprocess
 import asyncio
@@ -25,15 +24,10 @@ def _get_recognizer():
             if _recognizer is None:
                 import sherpa_onnx
                 print(f"[ASR] Loading Sherpa-ONNX model from {_MODEL_DIR}...")
-                config = sherpa_onnx.OfflineRecognizerConfig(
-                    model_config=sherpa_onnx.OfflineModelConfig(
-                        paraformer=sherpa_onnx.OfflineParaformerModelConfig(
-                            model=_MODEL_FILE,
-                        ),
-                        tokens=_TOKENS_FILE,
-                    ),
+                _recognizer = sherpa_onnx.OfflineRecognizer.from_paraformer(
+                    paraformer=_MODEL_FILE,
+                    tokens=_TOKENS_FILE,
                 )
-                _recognizer = sherpa_onnx.OfflineRecognizer(config)
                 print("[ASR] Sherpa-ONNX model loaded (global singleton)")
     return _recognizer
 
