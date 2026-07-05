@@ -53,7 +53,7 @@ async def text_to_speech(text: str, voice: str = None) -> bytes:
     try:
         async with websockets.connect(
             DOUBAO_WS_URL,
-            additional_headers={
+            extra_headers={
                 "X-Api-Key": api_key,
                 "X-Api-Resource-Id": "volc.tts.default",
                 "X-Api-Connect-Id": connect_id,
