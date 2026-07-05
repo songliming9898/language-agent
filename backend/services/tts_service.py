@@ -11,7 +11,7 @@ import aiohttp
 from config import settings
 
 # 阿里云 Token 换取地址
-TOKEN_URL = "https://nls-meta.cn-shanghai.aliyuncs.com/pop/2018-05-18/tokens"
+TOKEN_URL = "https://nls-meta.cn-shanghai.aliyuncs.com/"
 # 语音合成地址
 TTS_URL = "https://nls-gateway-cn-shanghai.aliyuncs.com/stream/v1/tts"
 
@@ -23,12 +23,11 @@ SAMPLE_RATE = 16000
 _token_cache = {"token": "", "expire_time": 0}
 
 
-def _sign_request(access_key_id: str, access_key_secret: str) -> str:
+def _sign_request(access_key_id: str, access_key_secret: str, http_method: str) -> str:
     """生成阿里云 POP API 签名，返回签名字符串"""
     timestamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     signature_nonce = str(uuid.uuid4())
 
-    # 请求参数
     params = {
         "AccessKeyId": access_key_id,
         "Action": "CreateToken",
@@ -38,21 +37,18 @@ def _sign_request(access_key_id: str, access_key_secret: str) -> str:
         "SignatureNonce": signature_nonce,
         "SignatureVersion": "1.0",
         "Timestamp": timestamp,
-        "Version": "2018-05-18",
+        "Version": "2019-02-28",
     }
 
-    # 排序并构造规范化查询字符串
     sorted_params = sorted(params.items())
     query_string = urllib.parse.urlencode(sorted_params, quote_via=urllib.parse.quote)
 
-    # 构造待签名字符串
     string_to_sign = (
-        "GET" + "&"
+        http_method + "&"
         + urllib.parse.quote_plus("/") + "&"
         + urllib.parse.quote_plus(query_string, safe="")
     )
 
-    # HMAC-SHA1 签名
     h = hmac.new(
         (access_key_secret + "&").encode("utf-8"),
         string_to_sign.encode("utf-8"),
@@ -60,7 +56,7 @@ def _sign_request(access_key_id: str, access_key_secret: str) -> str:
     )
     signature = base64.b64encode(h.digest()).decode("utf-8")
 
-    return f"{query_string}&Signature={urllib.parse.quote(signature, safe='')}"
+    return f"Signature={urllib.parse.quote(signature, safe='')}&{query_string}"
 
 
 async def _get_token() -> str:
@@ -77,13 +73,13 @@ async def _get_token() -> str:
         print("[TTS Token] AK not configured")
         return ""
 
-    signed_query = _sign_request(access_key_id, access_key_secret)
+    signed_query = _sign_request(access_key_id, access_key_secret, "POST")
     url = f"{TOKEN_URL}?{signed_query}"
 
-    print(f"[TTS Token] Requesting new token...")
+    print(f"[TTS Token] Requesting token via POST...")
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.get(url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
+            async with session.post(url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
                 text = await resp.text()
                 print(f"[TTS Token] Status={resp.status}, body={text[:300]}")
                 if resp.status == 200:
