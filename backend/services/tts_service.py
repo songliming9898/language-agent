@@ -4,6 +4,7 @@ import hmac
 import hashlib
 import uuid
 import time
+import traceback
 import urllib.parse
 import aiohttp
 from config import settings
@@ -64,6 +65,10 @@ async def text_to_speech(text: str, voice: str = None) -> bytes:
     access_key_secret = settings.ALIYUN_AK_SECRET
     app_key = settings.ALIYUN_TTS_APP_KEY
 
+    print(f"[TTS] AK_ID={access_key_id[:5] if access_key_id else 'EMPTY'}..., "
+          f"AK_SECRET={'SET' if access_key_secret else 'EMPTY'}, "
+          f"APP_KEY={'SET' if app_key else 'EMPTY'}")
+
     if not access_key_id or not access_key_secret or not app_key:
         print("[TTS] ALIYUN credentials not configured, using silent fallback")
         return b""
@@ -99,5 +104,6 @@ async def text_to_speech(text: str, voice: str = None) -> bytes:
                     print(f"[TTS] Aliyun returned {resp.status}: {error_text}")
                     return b""
     except Exception as e:
-        print(f"[TTS] Error: {e}")
+        print(f"[TTS] Error type={type(e).__name__}, msg={e}")
+        traceback.print_exc()
         return b""
