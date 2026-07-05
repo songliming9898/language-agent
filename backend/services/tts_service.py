@@ -1,4 +1,4 @@
-"""TTS 语音合成服务（火山引擎豆包 TTS - API Key 方式）"""
+"""TTS 语音合成服务（火山引擎豆包 TTS）"""
 import json
 import uuid
 import asyncio
@@ -12,7 +12,7 @@ DOUBAO_API_URL = "https://openspeech.bytedance.com/api/v1/tts"
 async def text_to_speech(text: str, voice: str = None) -> bytes:
     """
     将文字转为语音，返回 MP3 字节流
-    使用火山引擎豆包 TTS API Key 方式接入
+    使用火山引擎豆包 TTS
     """
     api_key = settings.DOUBAO_API_KEY
     tts_voice = voice or settings.DOUBAO_VOICE
@@ -24,7 +24,7 @@ async def text_to_speech(text: str, voice: str = None) -> bytes:
     print(f"[TTS] Doubao synthesizing: {text[:60]}...")
 
     headers = {
-        "Authorization": f"Bearer {api_key}",
+        "Authorization": f"Bearer;{api_key}",
         "Content-Type": "application/json",
     }
 
