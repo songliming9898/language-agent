@@ -27,8 +27,8 @@ class Settings(BaseSettings):
     # TTS (pyttsx3 离线方案)
     TTS_PROVIDER: str = "pyttsx3"
 
-    # ASR (Sherpa-ONNX Paraformer 离线方案)
-    ASR_PROVIDER: str = "sherpa_onnx"
+    # ASR (Vosk 离线方案)
+    ASR_PROVIDER: str = "vosk"
 
     # 应用
     APP_HOST: str = "0.0.0.0"

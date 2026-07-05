@@ -1,11 +1,30 @@
-"""ASR 语音识别服务（Sherpa-ONNX Paraformer 离线方案）"""
+"""ASR 语音识别服务（Vosk 离线方案 + 全局预加载）"""
 import os
+import json
 import tempfile
 import subprocess
 import asyncio
+import concurrent.futures
+import threading
 
-# 模型路径
-MODEL_DIR = os.path.join(os.path.dirname(__file__), "..", "sherpa-onnx-paraformer-zh-small")
+# 全局单例模型（启动时加载一次，后续请求复用）
+_model = None
+_model_lock = threading.Lock()
+
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "vosk-model-small-en-us-0.15")
+
+
+def _get_model():
+    """获取全局 Vosk 模型（懒加载 + 线程安全）"""
+    global _model
+    if _model is None:
+        with _model_lock:
+            if _model is None:
+                import vosk
+                print(f"[ASR] Loading Vosk model from {MODEL_PATH}...")
+                _model = vosk.Model(MODEL_PATH)
+                print("[ASR] Vosk model loaded (global singleton)")
+    return _model
 
 
 def _convert_to_wav(input_path: str) -> str | None:
@@ -23,10 +42,32 @@ def _convert_to_wav(input_path: str) -> str | None:
         return None
 
 
+def _recognize_sync(wav_path: str) -> str:
+    """同步语音识别（在线程池中运行）"""
+    import vosk
+    import wave
+
+    model = _get_model()
+    wf = wave.open(wav_path, "rb")
+    rec = vosk.KaldiRecognizer(model, wf.getframerate())
+    rec.SetWords(False)
+
+    result_text = ""
+    while True:
+        data = wf.readframes(4000)
+        if len(data) == 0:
+            break
+        if rec.AcceptWaveform(data):
+            res = json.loads(rec.Result())
+            result_text += res.get("text", "") + " "
+    res = json.loads(rec.FinalResult())
+    result_text += res.get("text", "")
+    wf.close()
+    return result_text.strip()
+
+
 async def speech_to_text(audio_bytes: bytes, filename: str = "audio.webm") -> str:
-    """
-    语音转文字，使用 Sherpa-ONNX Paraformer 离线识别
-    """
+    """语音转文字，使用 Vosk 离线识别（全局预加载模型）"""
     suffix = os.path.splitext(filename)[1] or ".webm"
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         tmp.write(audio_bytes)
@@ -34,97 +75,24 @@ async def speech_to_text(audio_bytes: bytes, filename: str = "audio.webm") -> st
 
     wav_path = None
     try:
-        # 先转 wav
         wav_path = _convert_to_wav(tmp_path)
         if not wav_path:
             return ""
 
-        # 检查模型是否存在
-        if not os.path.exists(MODEL_DIR):
-            print(f"[ASR] Model not found at {MODEL_DIR}, downloading...")
-            _download_model()
-
-        if not os.path.exists(MODEL_DIR):
-            print("[ASR] Model download failed")
+        if not os.path.exists(MODEL_PATH):
+            print(f"[ASR] Vosk model not found at {MODEL_PATH}")
             return ""
 
-        # 使用 sherpa-onnx Python API
-        try:
-            import sherpa_onnx
+        loop = asyncio.get_running_loop()
+        with concurrent.futures.ThreadPoolExecutor() as pool:
+            result = await loop.run_in_executor(pool, _recognize_sync, wav_path)
 
-            config = sherpa_onnx.OfflineRecognizerConfig(
-                model=sherpa_onnx.OfflineModelConfig(
-                    paraformer=sherpa_onnx.OfflineParaformerModelConfig(
-                        model=os.path.join(MODEL_DIR, "model.int8.onnx"),
-                    ),
-                    tokens=os.path.join(MODEL_DIR, "tokens.txt"),
-                ),
-            )
-            recognizer = sherpa_onnx.OfflineRecognizer(config)
-            import soundfile as sf
-            samples, sample_rate = sf.read(wav_path)
-            stream = recognizer.create_stream()
-            stream.accept_waveform(sample_rate, samples)
-            recognizer.decode_stream(stream)
-            result = stream.result.text.strip()
-            return result
-        except ImportError:
-            print("[ASR] sherpa-onnx not installed, trying CLI fallback...")
-            return await _cli_fallback(wav_path)
-
+        return result
     except Exception as e:
         print(f"[ASR] Error: {type(e).__name__}: {e}")
         return ""
     finally:
-        # 清理临时文件
         if os.path.exists(tmp_path):
             os.unlink(tmp_path)
         if wav_path and os.path.exists(wav_path):
             os.unlink(wav_path)
-
-
-async def _cli_fallback(wav_path: str) -> str:
-    """使用 sherpa-onnx 命令行工具作为备选"""
-    try:
-        # 查找 sherpa-onnx 的 CLI 工具
-        cmd = [
-            "python", "-m", "sherpa_onnx",
-            "--tokens", os.path.join(MODEL_DIR, "tokens.txt"),
-            "--paraformer-model", os.path.join(MODEL_DIR, "model.int8.onnx"),
-            wav_path,
-        ]
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-        text = result.stdout.strip()
-        if not text:
-            text = result.stderr.strip()
-        # 提取识别结果
-        for line in text.split("\n"):
-            if line.strip() and not line.startswith("[") and not line.startswith("LOG"):
-                return line.strip()
-        return ""
-    except Exception as e:
-        print(f"[ASR] CLI fallback error: {e}")
-        return ""
-
-
-def _download_model():
-    """下载 Sherpa-ONNX Paraformer 中文小模型"""
-    import urllib.request
-    import tarfile
-    import io
-
-    model_url = (
-        "https://github.com/k2-fsa/sherpa-onnx/releases/download/"
-        "asr-models/sherpa-onnx-paraformer-zh-small-2024-03-09.tar.bz2"
-    )
-    extract_dir = os.path.dirname(MODEL_DIR)
-
-    print(f"[ASR] Downloading model from {model_url}...")
-    try:
-        data = urllib.request.urlopen(model_url, timeout=300).read()
-        print(f"[ASR] Downloaded {len(data)} bytes, extracting...")
-        with tarfile.open(fileobj=io.BytesIO(data), mode="r:bz2") as tar:
-            tar.extractall(extract_dir)
-        print(f"[ASR] Model extracted to {extract_dir}")
-    except Exception as e:
-        print(f"[ASR] Download failed: {e}")
