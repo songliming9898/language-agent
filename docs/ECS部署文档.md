@@ -25,7 +25,8 @@
 # Alibaba Cloud Linux 3
 yum install -y python3 python3-pip python3-devel
 ```
-
+api-key-20260208153831
+豆包api key  = 91b6419a-e915-486f-b31f-299e1998c06e
 ### 1.2 安装 Node.js 18+
 
 ```bash

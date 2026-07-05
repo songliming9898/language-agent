@@ -24,9 +24,10 @@ class Settings(BaseSettings):
     LLM_BASE_URL: str = "https://api.deepseek.com"
     LLM_MODEL: str = "deepseek-chat"
 
-    # TTS (火山引擎豆包 TTS，API Key 方式接入)
+    # TTS (火山引擎豆包 TTS)
     TTS_PROVIDER: str = "doubao"
-    DOUBAO_API_KEY: str = ""
+    DOUBAO_APP_ID: str = ""
+    DOUBAO_ACCESS_TOKEN: str = ""
     DOUBAO_VOICE: str = "BV001_streaming"
 
     # ASR (Sherpa-ONNX Paraformer 离线方案)

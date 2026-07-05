@@ -179,7 +179,11 @@ async def free_chat(
         if audio_data:
             import base64
             audio_base64 = base64.b64encode(audio_data).decode("utf-8")
-    except Exception:
+            print(f"[DEBUG /chat] TTS success: {len(audio_data)} bytes, base64 len: {len(audio_base64)}")
+        else:
+            print("[DEBUG /chat] TTS returned empty audio")
+    except Exception as e:
+        print(f"[DEBUG /chat] TTS error: {e}")
         audio_base64 = None
 
     return {

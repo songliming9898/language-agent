@@ -14,24 +14,25 @@ async def text_to_speech(text: str, voice: str = None) -> bytes:
     将文字转为语音，返回 MP3 字节流
     使用火山引擎豆包 TTS
     """
-    api_key = settings.DOUBAO_API_KEY
+    app_id = settings.DOUBAO_APP_ID
+    access_token = settings.DOUBAO_ACCESS_TOKEN
     tts_voice = voice or settings.DOUBAO_VOICE
 
-    if not api_key:
-        print("[TTS] Doubao API Key not configured")
+    if not app_id or not access_token:
+        print("[TTS] Doubao App ID or Access Token not configured")
         return b""
 
     print(f"[TTS] Doubao synthesizing: {text[:60]}...")
 
     headers = {
-        "Authorization": f"Bearer;{api_key}",
+        "Authorization": f"Bearer;{access_token}",
         "Content-Type": "application/json",
     }
 
     payload = {
         "app": {
-            "appid": "kids_english",
-            "token": api_key,
+            "appid": app_id,
+            "token": access_token,
             "cluster": "volcano_tts",
         },
         "user": {
