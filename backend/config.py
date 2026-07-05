@@ -24,8 +24,11 @@ class Settings(BaseSettings):
     LLM_BASE_URL: str = "https://api.deepseek.com"
     LLM_MODEL: str = "deepseek-chat"
 
-    # TTS (Edge-TTS 免费，无需配置)
-    TTS_PROVIDER: str = "edge"
+    # TTS (阿里云语音合成，请在 .env 中配置)
+    TTS_PROVIDER: str = "aliyun"
+    ALIYUN_AK_ID: str = ""
+    ALIYUN_AK_SECRET: str = ""
+    ALIYUN_TTS_APP_KEY: str = ""
 
     # ASR
     ASR_PROVIDER: str = "whisper"
