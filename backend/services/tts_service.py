@@ -1,53 +1,87 @@
-"""TTS 语音合成服务（pyttsx3 离线方案）"""
-import io
-import os
-import tempfile
+"""TTS 语音合成服务（火山引擎豆包 TTS）"""
+import json
 import asyncio
-import concurrent.futures
+import aiohttp
 from config import settings
 
 
-def _synthesize_sync(text: str) -> bytes:
-    """同步合成语音（在 executor 中运行）"""
-    import pyttsx3
-
-    engine = pyttsx3.init()
-    engine.setProperty("rate", 150)    # 语速
-    engine.setProperty("volume", 0.9)  # 音量
-
-    # 尝试设置英语女声
-    voices = engine.getProperty("voices")
-    for v in voices:
-        if "english" in v.name.lower() or "zira" in v.name.lower() or "en" in v.id.lower():
-            engine.setProperty("voice", v.id)
-            break
-
-    # 保存到临时文件
-    with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp:
-        tmp_path = tmp.name
-
-    engine.save_to_file(text, tmp_path)
-    engine.runAndWait()
-
-    with open(tmp_path, "rb") as f:
-        data = f.read()
-
-    os.unlink(tmp_path)
-    return data
+DOUBAO_API_URL = "https://openspeech.bytedance.com/api/v1/tts"
 
 
 async def text_to_speech(text: str, voice: str = None) -> bytes:
     """
     将文字转为语音，返回 MP3 字节流
-    使用 pyttsx3 离线引擎（免费，无需网络，无需 API Key）
+    使用火山引擎豆包 TTS REST API
     """
-    print(f"[TTS] pyttsx3 synthesizing: {text[:50]}...")
+    app_id = settings.DOUBAO_APP_ID
+    access_token = settings.DOUBAO_ACCESS_TOKEN
+    tts_voice = voice or settings.DOUBAO_VOICE
+    cluster = settings.DOUBAO_CLUSTER
+
+    if not app_id or not access_token:
+        print("[TTS] Doubao credentials not configured")
+        return b""
+
+    print(f"[TTS] Doubao synthesizing: {text[:60]}...")
+
+    headers = {
+        "Authorization": f"Bearer;{access_token}",
+        "Content-Type": "application/json",
+    }
+
+    payload = {
+        "app": {
+            "appid": app_id,
+            "token": access_token,
+            "cluster": cluster,
+        },
+        "user": {
+            "uid": "kids_english_user",
+        },
+        "audio": {
+            "voice_type": tts_voice,
+            "encoding": "mp3",
+            "speed_ratio": 1.0,
+            "volume_ratio": 1.0,
+            "pitch_ratio": 1.0,
+        },
+        "request": {
+            "reqid": "",
+            "text": text,
+            "text_type": "plain",
+            "operation": "query",
+        },
+    }
+
     try:
-        loop = asyncio.get_running_loop()
-        with concurrent.futures.ThreadPoolExecutor() as pool:
-            data = await loop.run_in_executor(pool, _synthesize_sync, text)
-        print(f"[TTS] Success: {len(data)} bytes")
-        return data
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                DOUBAO_API_URL,
+                headers=headers,
+                json=payload,
+                timeout=aiohttp.ClientTimeout(total=30),
+            ) as resp:
+                if resp.status != 200:
+                    body = await resp.text()
+                    print(f"[TTS] Doubao returned {resp.status}: {body[:200]}")
+                    return b""
+
+                result = await resp.json()
+                code = result.get("code", -1)
+                if code != 3000:
+                    print(f"[TTS] Doubao error code={code}, msg={result.get('message', '')}")
+                    return b""
+
+                audio_b64 = result.get("data", "")
+                if not audio_b64:
+                    print("[TTS] Doubao returned empty audio data")
+                    return b""
+
+                import base64
+                audio_data = base64.b64decode(audio_b64)
+                print(f"[TTS] Success: {len(audio_data)} bytes")
+                return audio_data
+
     except Exception as e:
         print(f"[TTS] Error: {type(e).__name__}: {e}")
         return b""
