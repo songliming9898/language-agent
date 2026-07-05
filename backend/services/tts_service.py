@@ -1,5 +1,6 @@
 """TTS 语音合成服务（火山引擎豆包 TTS - API Key 方式）"""
 import json
+import uuid
 import asyncio
 import aiohttp
 from config import settings
@@ -44,7 +45,7 @@ async def text_to_speech(text: str, voice: str = None) -> bytes:
             "pitch_ratio": 1.0,
         },
         "request": {
-            "reqid": "",
+            "reqid": str(uuid.uuid4()),
             "text": text,
             "text_type": "plain",
             "operation": "query",
