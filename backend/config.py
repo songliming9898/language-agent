@@ -24,9 +24,8 @@ class Settings(BaseSettings):
     LLM_BASE_URL: str = "https://api.deepseek.com"
     LLM_MODEL: str = "deepseek-chat"
 
-    # TTS (火山引擎豆包 TTS)
+    # TTS (火山引擎豆包 TTS v3 WebSocket)
     TTS_PROVIDER: str = "doubao"
-    DOUBAO_APP_ID: str = ""
     DOUBAO_ACCESS_TOKEN: str = ""
     DOUBAO_VOICE: str = "BV001_streaming"
 
