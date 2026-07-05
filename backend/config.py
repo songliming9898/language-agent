@@ -24,10 +24,9 @@ class Settings(BaseSettings):
     LLM_BASE_URL: str = "https://api.deepseek.com"
     LLM_MODEL: str = "deepseek-chat"
 
-    # TTS (火山引擎豆包 TTS v3 WebSocket)
-    TTS_PROVIDER: str = "doubao"
-    DOUBAO_ACCESS_TOKEN: str = ""
-    DOUBAO_VOICE: str = "BV001_streaming"
+    # TTS (Microsoft Edge TTS，免费)
+    TTS_PROVIDER: str = "edge"
+    TTS_VOICE: str = "en-US-JennyNeural"
 
     # ASR (Sherpa-ONNX Paraformer 离线方案)
     ASR_PROVIDER: str = "sherpa_onnx"
